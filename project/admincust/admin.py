@@ -10,6 +10,7 @@ from django.utils.safestring import mark_safe
 
 from .models import Customer, Product, Seller
 
+
 class ProductInline(admin.TabularInline):
     model = Product
     extra = 1
@@ -40,13 +41,48 @@ class SellerAdmin(admin.ModelAdmin):
     fields = ['seller_name', 'address', 'customers']
     readonly_fields = ['seller_name']
     search_fields = ['seller_name']
+    
 
 class ProductAdmin(admin.ModelAdmin):
     list_display = ['product_name', 'description']
     search_fields = ['product_name']
 
+def mark_active(modeladmin, request, queryset):
+    queryset.update(status=True)
+
+mark_active.short_description = "Mark selected entries as Active"
+
+def mark_inactive(modeladmin, request, queryset):
+    queryset.update(status=False)
+
+mark_inactive.short_description = "Mark selected entries as Inactive"
+
 class CustomerAdmin(admin.ModelAdmin):
     list_display = ['name', 'phone_number', 'status']
+    actions = ['mark_inactive', 'mark_active']
+
+    def mark_active(modeladmin, request, queryset):
+        queryset.update(status=True)
+
+    mark_active.short_description = "Mark selected entries as Active"
+
+    def mark_inactive(modeladmin, request, queryset):
+        queryset.update(status=False)
+
+    mark_inactive.short_description = "Mark selected entries as Inactive"
+    
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        
+        groups = request.user.groups.all()
+
+        for grp in groups:
+            if ((str(grp)) == 'seller'):
+                del actions['delete_selected']
+            if ((str(grp)) == 'customer'):
+                actions.clear()
+        return actions
+
 
 admin.site.register(Customer, CustomerAdmin)
 admin.site.register(Product, ProductAdmin)
